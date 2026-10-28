@@ -429,18 +429,23 @@ class Ldap implements ConnectionInterface
      */
     public function bind($username, $password, $sasl = false)
     {
+        $conn = $this->getConnection();
+        if (!$conn) {
+            return false;
+        }
+
         if ($sasl) {
             if ($this->suppressErrors) {
-                return $this->bound = @ldap_sasl_bind($this->getConnection(), null, null, 'GSSAPI');
+                return $this->bound = @ldap_sasl_bind($conn, null, null, 'GSSAPI');
             }
 
-            return $this->bound = ldap_sasl_bind($this->getConnection(), null, null, 'GSSAPI');
+            return $this->bound = ldap_sasl_bind($conn, null, null, 'GSSAPI');
         } else {
             if ($this->suppressErrors) {
-                return $this->bound = @ldap_bind($this->getConnection(), $username, $password);
+                return $this->bound = @ldap_bind($conn, $username, $password);
             }
 
-            return $this->bound = ldap_bind($this->getConnection(), $username, $password);
+            return $this->bound = ldap_bind($conn, $username, $password);
         }
     }
 
