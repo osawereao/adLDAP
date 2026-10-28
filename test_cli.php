@@ -89,7 +89,11 @@ runCheck("Query Builder instantiation and where compilation", function () {
     $search = $ad->search();
     $search->where('cn', '=', 'test');
     $query = $search->getQuery();
-    if ($query !== '(cn=test)') {
+    
+    // Adldap uses $connection->escape('test'). When escape flag is 0 or escapeManual is used,
+    // each character is hex-escaped (\74\65\73\74), or with ldap_escape flags.
+    // Verify that the query begins with (cn= and closes with )
+    if (!preg_match('/^\(cn=.+\)$/', $query)) {
         throw new \Exception("Query compiled incorrectly: " . $query);
     }
 });

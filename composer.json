@@ -1,22 +1,31 @@
 {
-    "name": "adldap/adldap",
+    "name": "osawereao/adldap",
     "type": "library",
-    "description": "A PHP LDAP Library for Active Directory Manipulation",
+    "description": "A PHP LDAP Library for Active Directory Manipulation (PHP 8.2+)",
     "keywords": [
         "active directory",
         "ldap",
-        "windows"
+        "windows",
+        "adldap",
+        "authentication"
     ],
+    "homepage": "https://osawere.com",
     "license": "LGPL-2.1",
     "support": {
-        "issues": "https://github.com/adldap/adLDAP/issues",
-        "source": "https://github.com/adldap/adLDAP"
+        "issues": "https://github.com/osawereao/adldap/issues",
+        "source": "https://github.com/osawereao/adldap"
     },
     "authors": [
         {
+            "name": "Anthony Osawere",
+            "email": "anthony@osawere.com",
+            "homepage": "https://osawere.com",
+            "role": "Maintainer"
+        },
+        {
             "name": "Richard Hyland",
             "email": "adldap@richardhyland.com",
-            "role": "Developer"
+            "role": "Original Developer"
         },
         {
             "name": "Scott Barnett",
@@ -54,5 +63,7 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
-    }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }

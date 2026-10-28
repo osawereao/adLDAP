@@ -341,7 +341,13 @@ class Ldap implements ConnectionInterface
             $protocol = $this::PROTOCOL_SSL;
         }
 
-        return $this->connection = ldap_connect($protocol.$hostname, $port);
+        if ($port) {
+            $url = $protocol . $hostname . ':' . $port;
+        } else {
+            $url = $protocol . $hostname;
+        }
+
+        return $this->connection = ldap_connect($url);
     }
 
     /**
@@ -445,7 +451,13 @@ class Ldap implements ConnectionInterface
                 return $this->bound = @ldap_bind($conn, $username, $password);
             }
 
-            return $this->bound = ldap_bind($conn, $username, $password);
+            $bound = ldap_bind($conn, $username, $password);
+
+            if (!$bound) {
+                throw new AdldapException('Bind to LDAP failed. Error: ' . $this->getLastError());
+            }
+
+            return $this->bound = $bound;
         }
     }
 
@@ -789,10 +801,16 @@ class Ldap implements ConnectionInterface
                 break;
             case 3:
                 // If both LDAP_ESCAPE_FILTER and LDAP_ESCAPE_DN are used
-                $escapes = array_merge($escapeFilter, $escapeDn);
+                $escapes = array_unique(array_merge($escapeFilter, $escapeDn));
                 break;
             default:
                 return false;
+        }
+
+        // Ensure backslash is escaped first if present
+        if (in_array('\\', $escapes)) {
+            $escapes = array_diff($escapes, ['\\']);
+            array_unshift($escapes, '\\');
         }
 
         foreach ($escapes as $escape) {

@@ -1,72 +1,239 @@
-## Description
+# adLDAP
 
-> **ATTENTION**: Version v5.0.0 is in heavy development, however it is close to completion. Use 'dev-master' at you're own risk.
+adLDAP is a PHP class library that provides LDAP authentication and Active Directory management tools, modernized for **PHP 8.2+**.
 
-adLDAP is a tested PHP class library that provides LDAP authentication and Active Directory management tools.
-
-## Index
-
-> **Note:** Documentation is incomplete as Adldap is currently in the upgrade process to version `5.0.0`. They will be fully featured and complete in the coming weeks.
-
-- [Installation](#installation)
-- [Testing With A Public AD Server](#need-to-test-an-ldap-connection)
-- [Upgrading to v5 from v4](docs/UPGRADING.md)
-- [Getting Started](docs/GETTING-STARTED.md)
-- Usage 
- - [Search Functions](docs/SEARCH-FUNCTIONS.md)
- - [Computer Functions](docs/COMPUTER-FUNCTIONS.md)
- - [Contact Functions](docs/CONTACT-FUNCTIONS.md)
- - [Exchange Functions](docs/EXCHANGE-FUNCTIONS.md)
- - [Folder Functions](docs/FOLDER-FUNCTIONS.md)
- - [Group Functions](docs/GROUP-FUNCTIONS.md)
- - [User Functions](docs/USER-FUNCTIONS.md)
+---
 
 ## Requirements
 
-To use adLDAP, your sever must support:
+- **PHP**: `^8.2` (tested with PHP 8.2.35 and PHP 8.5)
+- **PHP LDAP Extension**: `ext-ldap` enabled in your `php.ini`
+- **OpenSSL Extension** *(optional)*: Required if connecting to Active Directory over LDAPS / SSL (`use_ssl => true`) or TLS.
 
-- PHP 5.4 or greater
-- PHP LDAP Extension
-
-
-## Optional Requirements
-
-If your AD server requires SSL, your server must support the following libraries:
-
-- PHP SSL Libraries (http://php.net/openssl)
+---
 
 ## Installation
 
-adLDAP has moved to a composer based installation. If you'd like to use adLDAP without an auto-loader, you'll
-have to require the files inside the project `src/` directory yourself.
+### Option 1: Install via Composer (Recommended)
 
-Insert Adldap into your `composer.json` file:
+Once published to Packagist, install the package via your terminal:
 
-    "adldap/adldap": "5.0.*"
-   
-Run `composer update`
+```bash
+composer require osawereao/adldap
+```
 
-You're good to go!
+Or add it directly to your project's `composer.json`:
 
-## Need to test an LDAP connection?
+```json
+"require": {
+    "osawereao/adldap": "^5.1"
+}
+```
 
-If you need to test something with access to an LDAP server, the generous folks at [Georgia Tech](http://drupal.gatech.edu/handbook/public-ldap-server) have you covered.
+Then update your dependencies:
 
-Use the following configuration:
+```bash
+composer update osawereao/adldap
+```
 
-    $config = array(
-        'account_suffix' => "@gatech.edu",
-    
-        'domain_controllers' => array("whitepages.gatech.edu"),
-    
-        'base_dn' => 'dc=whitepages,dc=gatech,dc=edu',
-    
-        'admin_username' => '',
-    
-        'admin_password' => '',
-    );
-    
-    $ad = new Adldap($config);
-    
-However while useful for basic testing, the queryable data only includes user data, so if you're looking for testing with any other information
-or functionality such as modification, you'll have to use you're own server.
+---
+
+### Option 2: Local / Path Repository (Before Packagist Release)
+
+If you are developing locally or want to use this package in your project before publishing to Packagist, add a path repository to your application's `composer.json`:
+
+```json
+"repositories": [
+    {
+        "type": "path",
+        "url": "../adldap"
+    }
+],
+"require": {
+    "osawereao/adldap": "*"
+}
+```
+
+Then install:
+
+```bash
+composer update osawereao/adldap
+```
+
+---
+
+### Option 3: Direct Git Repository
+
+To pull directly from your GitHub repository:
+
+```json
+"repositories": [
+    {
+        "type": "vcs",
+        "url": "https://github.com/osawereao/adldap.git"
+    }
+],
+"require": {
+    "osawereao/adldap": "dev-main"
+}
+```
+
+Then install:
+
+```bash
+composer update osawereao/adldap
+```
+
+---
+
+## Basic Usage
+
+### 1. Initializing and Connecting
+
+```php
+use Adldap\Adldap;
+
+$config = [
+    'account_suffix'     => '@domain.local',
+    'domain_controllers' => ['dc1.domain.local', 'dc2.domain.local'],
+    'base_dn'            => 'dc=domain,dc=local',
+    'admin_username'     => 'administrator',
+    'admin_password'     => 'SecretPassword',
+    'ad_port'            => 389, // or 636 if use_ssl is true
+    'use_ssl'            => false,
+    'use_tls'            => false,
+    'recursive_groups'   => true,
+];
+
+// Initialize and auto-connect
+$ad = new Adldap($config);
+```
+
+### 2. User Authentication
+
+Authenticate credentials against Active Directory:
+
+```php
+if ($ad->authenticate('jdoe', 'UserPassword')) {
+    echo "Authentication successful!";
+} else {
+    echo "Invalid username or password.";
+}
+```
+
+### 3. Finding and Querying Users
+
+```php
+// Find user by username, email, or display name (ANR search)
+$user = $ad->user()->find('jdoe');
+
+// Query with specific attributes
+$user = $ad->user()->find('jdoe', ['cn', 'mail', 'telephonenumber', 'department']);
+
+// Get all users
+$allUsers = $ad->user()->all();
+```
+
+### 4. Search and Query Builder
+
+```php
+$results = $ad->search()
+    ->select(['cn', 'mail', 'samaccountname'])
+    ->where('department', '=', 'Engineering')
+    ->get();
+```
+
+### 5. Using inside Laravel 9 / 10 / 11
+
+In your `app/Providers/AppServiceProvider.php`:
+
+```php
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Adldap\Adldap;
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->singleton(Adldap::class, function ($app) {
+            return new Adldap(config('adldap'));
+        });
+    }
+}
+```
+
+Create a `config/adldap.php` config file:
+
+```php
+return [
+    'account_suffix'     => env('ADLDAP_ACCOUNT_SUFFIX', '@domain.local'),
+    'domain_controllers' => explode(',', env('ADLDAP_CONTROLLERS', 'dc1.domain.local')),
+    'base_dn'            => env('ADLDAP_BASE_DN', 'dc=domain,dc=local'),
+    'admin_username'     => env('ADLDAP_ADMIN_USER', 'administrator'),
+    'admin_password'     => env('ADLDAP_ADMIN_PASS', 'SecretPassword'),
+    'ad_port'            => (int) env('ADLDAP_PORT', 389),
+    'use_ssl'            => env('ADLDAP_USE_SSL', false),
+    'use_tls'            => env('ADLDAP_USE_TLS', false),
+    'recursive_groups'   => true,
+];
+```
+
+Then resolve anywhere in your controllers or services:
+
+```php
+$ad = app(Adldap::class);
+
+if ($ad->authenticate($request->username, $request->password)) {
+    // Authenticated
+}
+```
+
+---
+
+## Running Tests
+
+This package includes a Pest / PHPUnit test suite:
+
+```bash
+# Run with Pest
+./vendor/bin/pest
+
+# Or run with PHPUnit
+./vendor/bin/phpunit
+```
+
+To quickly verify PHP 8.2 compatibility without vendor binaries:
+
+```bash
+php test_cli.php
+```
+
+---
+
+## Documentation
+
+Full documentation and usage guides:
+- [Search Functions](docs/SEARCH-FUNCTIONS.md)
+- [User Functions](docs/USER-FUNCTIONS.md)
+- [Group Functions](docs/GROUP-FUNCTIONS.md)
+- [Folder Functions](docs/FOLDER-FUNCTIONS.md)
+- [Exchange Functions](docs/EXCHANGE-FUNCTIONS.md)
+- [Computer Functions](docs/COMPUTER-FUNCTIONS.md)
+- [Contact Functions](docs/CONTACT-FUNCTIONS.md)
+
+---
+
+## Authors & Maintainers
+
+- **Anthony Osawere** ([anthony@osawere.com](mailto:anthony@osawere.com)) - Maintainer
+- **Richard Hyland** - Original Developer
+- **Steve Bauman** - Contributor
+- **Scott Barnett** - Contributor
+
+---
+
+## License
+
+This library is licensed under the LGPL-2.1 License.

@@ -30,16 +30,22 @@ class ConnectionTest extends FunctionalTestCase
 
         $ldap->showErrors();
 
-        $ldap->connect('test');
+        $ldap->connect('invalid-host-that-cannot-connect');
 
-        try
-        {
+        // PHP emits an E_WARNING on failed bind when unsuppressed.
+        // We convert warnings to exceptions or catch standard exception.
+        $passes = false;
+
+        set_error_handler(function ($errno, $errstr) {
+            throw new \Exception($errstr);
+        });
+
+        try {
             $ldap->bind('test', 'test');
-
-            $passes = false;
-        } catch(\Throwable $e)
-        {
+        } catch (\Throwable $e) {
             $passes = true;
+        } finally {
+            restore_error_handler();
         }
 
         $this->assertTrue($passes);
