@@ -217,7 +217,9 @@ class AdldapUtils extends AbstractAdldapBase
         }
 
         if ($encode === true && $key != 'password') {
-            $item = utf8_encode($item);
+            $item = function_exists('mb_convert_encoding')
+                ? mb_convert_encoding($item, 'UTF-8', 'ISO-8859-1')
+                : utf8_encode($item);
         }
     }
 

@@ -7,6 +7,7 @@ use Adldap\Exceptions\AdldapException;
 /**
  * Class AbstractObject.
  */
+#[\AllowDynamicProperties]
 abstract class AbstractObject
 {
     /**

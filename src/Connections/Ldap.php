@@ -354,7 +354,7 @@ class Ldap implements ConnectionInterface
     {
         $connection = $this->getConnection();
 
-        if ($connection) {
+        if (is_resource($connection)) {
             ldap_close($connection);
         }
 
@@ -724,10 +724,10 @@ class Ldap implements ConnectionInterface
         }
 
         // Convert ignore string into an array
-        $ignores = str_split($ignore);
+        $ignores = str_split((string) $ignore);
 
         // Convert the value to a hex string
-        $hex = bin2hex($value);
+        $hex = bin2hex((string) $value);
 
         /*
          * Separate the string, with the hex length of 2,
@@ -768,7 +768,7 @@ class Ldap implements ConnectionInterface
     protected function escapeManualWithFlags($value, $ignore = '', $flags = 0)
     {
         // Convert ignore string into an array
-        $ignores = str_split($ignore);
+        $ignores = str_split((string) $ignore);
 
         $escapeFilter = ['\\', '*', '(', ')'];
         $escapeDn = ['\\', ',', '=', '+', '<', '>', ';', '"', '#'];
@@ -797,7 +797,7 @@ class Ldap implements ConnectionInterface
 
                 $hexed = '\\'.substr($hexed, 0, -1);
 
-                $value = str_replace($escape, $hexed, $value);
+                $value = str_replace($escape, $hexed, (string) $value);
             }
         }
 
@@ -818,7 +818,7 @@ class Ldap implements ConnectionInterface
             return chr(hexdec($matches[1]));
         };
 
-        return preg_replace_callback('/\\\([0-9A-Fa-f]{2})/', $callback, $value);
+        return preg_replace_callback('/\\\([0-9A-Fa-f]{2})/', $callback, (string) $value);
     }
 
     /**
@@ -840,7 +840,7 @@ class Ldap implements ConnectionInterface
      */
     public function extractDiagnosticCode($message)
     {
-        preg_match('/^([\da-fA-F]+):/', $message, $matches);
+        preg_match('/^([\da-fA-F]+):/', (string) $message, $matches);
 
         if (!isset($matches[1])) {
             return false;
