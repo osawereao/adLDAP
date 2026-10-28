@@ -13,40 +13,33 @@ class AdldapObjectTest extends FunctionalTestCase
     {
         $object = $this->newAbstractObjectMock()->makePartial();
 
-        $object->setAttribute('Key', 'Value');
+        $object->setAttribute('key', 'value');
 
-        $expected = [
-            'Key' => 'Value',
-        ];
-
-        $this->assertEquals($expected, $object->getAttributes());
+        $this->assertEquals('value', $object->getAttribute('key'));
     }
 
     public function testObjectSetAttributes()
     {
         $object = $this->newAbstractObjectMock()->makePartial();
 
-        $expected = [
-            'Key' => 'Value',
+        $attributes = [
+            'first' => 'First Value',
+            'second' => 'Second Value',
         ];
 
-        $object->setAttributes($expected);
+        $object->setAttributes($attributes);
 
-        $this->assertEquals($expected, $object->getAttributes());
+        $this->assertEquals($attributes, $object->getAttributes());
     }
 
     public function testObjectHasAttribute()
     {
         $object = $this->newAbstractObjectMock()->makePartial();
 
-        $attributes = [
-            'Key' => 'Value',
-        ];
+        $object->setAttribute('first', 'First Value');
 
-        $object->setAttributes($attributes);
-
-        $this->assertTrue($object->hasAttribute('Key'));
-        $this->assertFalse($object->hasAttribute('Does Not Exist'));
+        $this->assertTrue($object->hasAttribute('first'));
+        $this->assertFalse($object->hasAttribute('second'));
     }
 
     public function testObjectCountAttributes()
@@ -54,15 +47,13 @@ class AdldapObjectTest extends FunctionalTestCase
         $object = $this->newAbstractObjectMock()->makePartial();
 
         $attributes = [
-            'One',
-            'Two',
-            'Three',
-            'Four'
+            'first' => 'First Value',
+            'second' => 'Second Value',
         ];
 
         $object->setAttributes($attributes);
 
-        $this->assertEquals(4, $object->countAttributes());
+        $this->assertEquals(2, $object->countAttributes());
     }
 
     public function testObjectValidateRequiredPass()
@@ -90,7 +81,7 @@ class AdldapObjectTest extends FunctionalTestCase
 
         $object->setRequired($required);
 
-        $this->setExpectedException('Adldap\Exceptions\AdldapException');
+        $this->expectException('Adldap\Exceptions\AdldapException');
 
         $object->validateRequired();
     }
@@ -108,7 +99,7 @@ class AdldapObjectTest extends FunctionalTestCase
 
         $object->setAttribute('required', 'Pass');
 
-        $object->validateRequired(['required']);
+        $this->assertTrue($object->validateRequired(['required']));
     }
 
     public function testObjectValidateRequiredOnlyFailure()
@@ -124,7 +115,7 @@ class AdldapObjectTest extends FunctionalTestCase
 
         $object->setAttribute('required', 'Pass');
 
-        $this->setExpectedException('Adldap\Exceptions\AdldapException');
+        $this->expectException('Adldap\Exceptions\AdldapException');
 
         $object->validateRequired(['another']);
     }

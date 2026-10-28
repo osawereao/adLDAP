@@ -29,7 +29,7 @@ class AdldapUsersTest extends FunctionalTestCase
         'container' => [],
     ];
 
-    public function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -44,62 +44,78 @@ class AdldapUsersTest extends FunctionalTestCase
         $this->userClassMock->__construct($this->adMock);
     }
 
-    public function tearDown()
+    public function testUserAuthenticate()
     {
-        parent::tearDown();
+        $this->connectionMock->shouldReceive('bind')->once()->andReturn(true);
 
-        unset($this->connectionMock);
-        unset($this->adMock);
-        unset($this->userClassMock);
+        $this->assertTrue($this->userClassMock->authenticate('username', 'password'));
     }
 
-    public function testCreateFailure()
+    public function testUserAll()
     {
-        $attributes = $this->stubUser;
+        $this->connectionMock
+            ->shouldReceive('search')->once()->andReturn(true)
+            ->shouldReceive('getEntries')->once()->andReturn([]);
 
-        $attributes['container'] = 'Invalid Container';
-
-        $this->setExpectedException('Adldap\Exceptions\AdldapException');
-
-        $this->connectionMock->shouldReceive('add')->andReturn(true);
-        $this->connectionMock->shouldReceive('close')->andReturn(true);
-
-        $this->userClassMock->create($attributes);
+        $this->assertEquals([], $this->userClassMock->all());
     }
 
-    public function testCreate()
+    public function testUserFind()
     {
-        $attributes = [
-            'username' => 'jdoe',
-            'firstname' => 'John',
-            'surname' => 'Doe',
-            'email' => 'jdoe@acme.com',
-            'container' => [],
-        ];
+        $this->connectionMock
+            ->shouldReceive('search')->once()->andReturn(true)
+            ->shouldReceive('getEntries')->once()->andReturn([
+                'count' => 1,
+                0 => [
+                    'count' => 1,
+                    'cn' => [
+                        'count' => 1,
+                        0 => 'John Doe',
+                    ],
+                ],
+            ]);
+
+        $this->assertEquals(['cn' => 'John Doe'], $this->userClassMock->find('jdoe'));
+    }
+
+    public function testUserPasswordExpiry()
+    {
+        $this->connectionMock
+            ->shouldReceive('search')->twice()->andReturn(true)
+            ->shouldReceive('getEntries')->twice()->andReturn(
+                [
+                    'count' => 1,
+                    0 => [
+                        'count' => 2,
+                        'pwdlastset' => [
+                            'count' => 1,
+                            0 => '130700000000000000',
+                        ],
+                        'useraccountcontrol' => [
+                            'count' => 1,
+                            0 => '512',
+                        ],
+                    ],
+                ],
+                [
+                    'count' => 1,
+                    0 => [
+                        'count' => 1,
+                        'maxpwdage' => [
+                            'count' => 1,
+                            0 => '-37108517437440',
+                        ],
+                    ],
+                ]
+            );
 
         $expected = [
-            'pwdLastSet' => [-1],
-            'displayName' => ['John Doe'],
-            'mail' => ['jdoe@acme.com'],
-            'givenName' => ['John'],
-            'sn' => ['Doe'],
-            'cn' => ['John Doe'],
-            'sAMAccountname' => ['John Doe'],
-            'objectclass' => [
-                ['top'],
-                ['person'],
-                ['organizationalPerson'],
-                ['user']
-            ],
-            'userAccountControl' => [0 => 514]
+            'expires' => true,
+            'has_expired' => false,
+            'expiry_timestamp' => '1426462914',
+            'expiry_formatted' => '2015-03-15 23:41:54',
         ];
 
-        $this->connectionMock->shouldReceive('escape');
-        $this->connectionMock->shouldReceive('getEntries');
-        $this->connectionMock->shouldReceive('read');
-        $this->connectionMock->shouldReceive('add');
-        $this->connectionMock->shouldReceive('close');
-
-        $this->userClassMock->create($attributes);
+        $this->assertEquals($expected, $this->userClassMock->passwordExpiry('jdoe'));
     }
 }

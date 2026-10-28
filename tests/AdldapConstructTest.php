@@ -18,7 +18,7 @@ class AdldapConstructTest extends FunctionalTestCase
             new Adldap('test');
 
             $passes = false;
-        } catch(\Exception $e)
+        } catch(\Throwable $e)
         {
             $passes = true;
         }
@@ -40,7 +40,7 @@ class AdldapConstructTest extends FunctionalTestCase
             new Adldap([], $connection);
 
             $passes = false;
-        } catch(\Exception $e)
+        } catch(\Throwable $e)
         {
             $passes = true;
         }
@@ -64,7 +64,7 @@ class AdldapConstructTest extends FunctionalTestCase
             new Adldap($config);
 
             $passes = false;
-        } catch (\Exception $e)
+        } catch (\Throwable $e)
         {
             $passes = true;
         }
@@ -162,5 +162,7 @@ class AdldapConstructTest extends FunctionalTestCase
         $differentConnection->shouldReceive('close')->once()->andReturn(true);
 
         $ad->setLdapConnection($differentConnection);
+
+        $this->assertSame($differentConnection, $ad->getLdapConnection());
     }
 }

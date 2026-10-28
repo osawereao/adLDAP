@@ -53,7 +53,7 @@ class AdldapMethodTest extends FunctionalTestCase
             $ad->setDomainControllers($controllers);
 
             $passes = false;
-        } catch(\Exception $e)
+        } catch(\Throwable $e)
         {
             $passes = true;
         }
@@ -85,7 +85,7 @@ class AdldapMethodTest extends FunctionalTestCase
             $ad->setLdapConnection($connection);
 
             $passes = false;
-        } catch (\Exception $e)
+        } catch (\Throwable $e)
         {
             $passes = true;
         }

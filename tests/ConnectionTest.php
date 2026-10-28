@@ -37,7 +37,7 @@ class ConnectionTest extends FunctionalTestCase
             $ldap->bind('test', 'test');
 
             $passes = false;
-        } catch(\Exception $e)
+        } catch(\Throwable $e)
         {
             $passes = true;
         }
@@ -49,51 +49,51 @@ class ConnectionTest extends FunctionalTestCase
     {
         $ldap = $this->mock('Adldap\Connections\Ldap')->makePartial();
 
-        $ldap->shouldAllowMockingProtectedMethods(true);
+        $ldap->shouldReceive('isEscapingSupported')->andReturn(false);
 
-        $expected = '\74\65\73\74\69\6e\67\3d\2b\3c\3e\22\22\3b\3a\23\28\29*\5c\78\30\30';
+        $value = 'admin,ou=users*';
 
-        $result = $ldap->escapeManual('testing=+<>"";:#()*\x00', '*');
+        $escaped = $ldap->escape($value);
 
-        $this->assertEquals($expected, $result);
+        $this->assertEquals('\61\64\6d\69\6e\2c\6f\75\3d\75\73\65\72\73\2a', $escaped);
     }
 
     public function testEscapeManualFilter()
     {
         $ldap = $this->mock('Adldap\Connections\Ldap')->makePartial();
 
-        $ldap->shouldAllowMockingProtectedMethods(true);
+        $ldap->shouldReceive('isEscapingSupported')->andReturn(false);
 
-        $expected = 'testing=+<>"";:#\28\29*\5cx00';
+        $value = 'admin,ou=users*';
 
-        $result = $ldap->escapeManual('testing=+<>"";:#()*\x00', '*', 1);
+        $escaped = $ldap->escape($value, '', 1);
 
-        $this->assertEquals($expected, $result);
+        $this->assertEquals('admin,ou=users\2a', $escaped);
     }
 
     public function testEscapeManualDn()
     {
         $ldap = $this->mock('Adldap\Connections\Ldap')->makePartial();
 
-        $ldap->shouldAllowMockingProtectedMethods(true);
+        $ldap->shouldReceive('isEscapingSupported')->andReturn(false);
 
-        $expected = 'testing\3d\2b\3c\3e\22\22\3b:\23()*\5cx00';
+        $value = 'admin,ou=users*';
 
-        $result = $ldap->escapeManual('testing=+<>"";:#()*\x00', '*', 2);
+        $escaped = $ldap->escape($value, '', 2);
 
-        $this->assertEquals($expected, $result);
+        $this->assertEquals('admin\2cou\3dusers*', $escaped);
     }
 
     public function testEscapeManualBothFilterAndDn()
     {
         $ldap = $this->mock('Adldap\Connections\Ldap')->makePartial();
 
-        $ldap->shouldAllowMockingProtectedMethods(true);
+        $ldap->shouldReceive('isEscapingSupported')->andReturn(false);
 
-        $expected = 'testing\3d\2b\3c\3e\22\22\3b:\23\5c28\5c29*\5c5cx00';
+        $value = 'admin,ou=users*';
 
-        $result = $ldap->escapeManual('testing=+<>"";:#()*\x00', '*', 3);
+        $escaped = $ldap->escape($value, '', 3);
 
-        $this->assertEquals($expected, $result);
+        $this->assertEquals('admin\2cou\3dusers\2a', $escaped);
     }
 }

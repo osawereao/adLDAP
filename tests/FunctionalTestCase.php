@@ -3,8 +3,9 @@
 namespace Adldap\Tests;
 
 use Mockery;
+use PHPUnit\Framework\TestCase;
 
-abstract class FunctionalTestCase extends \PHPUnit_Framework_TestCase
+abstract class FunctionalTestCase extends TestCase
 {
     public $configStub = [
         'account_suffix' => 'Account Suffix',
@@ -42,7 +43,15 @@ abstract class FunctionalTestCase extends \PHPUnit_Framework_TestCase
         return $this->mock('Adldap\Interfaces\ConnectionInterface');
     }
 
-    public function setUp()
+    /**
+     * Backward-compatibility wrapper for legacy PHPUnit 4 test cases.
+     */
+    public function setExpectedException($exception)
+    {
+        $this->expectException($exception);
+    }
+
+    protected function setUp(): void
     {
         // Set constants for testing without LDAP support
         if( ! defined('LDAP_OPT_PROTOCOL_VERSION')) define('LDAP_OPT_PROTOCOL_VERSION', 3);
@@ -56,8 +65,9 @@ abstract class FunctionalTestCase extends \PHPUnit_Framework_TestCase
         parent::setUp();
     }
 
-    public function tearDown()
+    protected function tearDown(): void
     {
         Mockery::close();
+        parent::tearDown();
     }
 }
