@@ -7,7 +7,8 @@
         "ldap",
         "windows",
         "adldap",
-        "authentication"
+        "authentication",
+        "laravel"
     ],
     "homepage": "https://osawere.com",
     "license": "LGPL-2.1",
@@ -57,6 +58,16 @@
     "autoload-dev": {
         "psr-4": {
             "Adldap\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Adldap\\Laravel\\AdldapServiceProvider"
+            ],
+            "aliases": {
+                "Adldap": "Adldap\\Laravel\\Facades\\Adldap"
+            }
         }
     },
     "config": {

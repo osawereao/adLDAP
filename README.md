@@ -1,6 +1,6 @@
 # adLDAP
 
-adLDAP is a PHP class library that provides LDAP authentication and Active Directory management tools, modernized for **PHP 8.2+**.
+adLDAP is a PHP class library that provides LDAP authentication and Active Directory management tools, modernized for **PHP 8.2+** with native **Laravel 9+** package auto-discovery.
 
 ---
 
@@ -12,181 +12,141 @@ adLDAP is a PHP class library that provides LDAP authentication and Active Direc
 
 ---
 
-## Installation
+## Installation & Setup
 
-### Option 1: Install via Composer (Recommended)
+### 1. In Laravel (Laravel 9 / 10 / 11)
 
-Once published to Packagist, install the package via your terminal:
+#### Step A: Install via Composer
+```bash
+composer require osawereao/adldap
+```
+
+#### Step B: Publish the Configuration
+Laravel auto-discovers the service provider. Run the artisan command to publish `config/adldap.php`:
+
+```bash
+php artisan vendor:publish --tag="adldap-config"
+```
+
+#### Step C: Add your Environment Variables
+Open your `.env` file and configure your Active Directory settings:
+
+```env
+ADLDAP_ACCOUNT_SUFFIX=@corp.local
+ADLDAP_CONTROLLERS=dc1.corp.local,dc2.corp.local
+ADLDAP_BASE_DN=dc=corp,dc=local
+ADLDAP_ADMIN_USER=administrator
+ADLDAP_ADMIN_PASS=SecretPassword
+ADLDAP_PORT=389
+ADLDAP_USE_SSL=false
+ADLDAP_USE_TLS=false
+```
+
+That's it! The package is ready to use in your controllers and services.
+
+---
+
+### 2. Local / Development Setup (Before Packagist Release)
+
+If testing locally in your application before the Packagist release:
+
+1. Add a path repository to your project's `composer.json`:
+   ```json
+   "repositories": [
+       {
+           "type": "path",
+           "url": "../adldap"
+       }
+   ],
+   "require": {
+       "osawereao/adldap": "*"
+   }
+   ```
+2. Update dependencies:
+   ```bash
+   composer update osawereao/adldap
+   ```
+3. Publish configuration:
+   ```bash
+   php artisan vendor:publish --tag="adldap-config"
+   ```
+
+---
+
+### 3. Standalone PHP Usage (Non-Laravel)
 
 ```bash
 composer require osawereao/adldap
 ```
 
-Or add it directly to your project's `composer.json`:
-
-```json
-"require": {
-    "osawereao/adldap": "^5.1"
-}
-```
-
-Then update your dependencies:
-
-```bash
-composer update osawereao/adldap
-```
-
----
-
-### Option 2: Local / Path Repository (Before Packagist Release)
-
-If you are developing locally or want to use this package in your project before publishing to Packagist, add a path repository to your application's `composer.json`:
-
-```json
-"repositories": [
-    {
-        "type": "path",
-        "url": "../adldap"
-    }
-],
-"require": {
-    "osawereao/adldap": "*"
-}
-```
-
-Then install:
-
-```bash
-composer update osawereao/adldap
-```
-
----
-
-### Option 3: Direct Git Repository
-
-To pull directly from your GitHub repository:
-
-```json
-"repositories": [
-    {
-        "type": "vcs",
-        "url": "https://github.com/osawereao/adldap.git"
-    }
-],
-"require": {
-    "osawereao/adldap": "dev-main"
-}
-```
-
-Then install:
-
-```bash
-composer update osawereao/adldap
-```
-
----
-
-## Basic Usage
-
-### 1. Initializing and Connecting
-
 ```php
 use Adldap\Adldap;
 
 $config = [
-    'account_suffix'     => '@domain.local',
-    'domain_controllers' => ['dc1.domain.local', 'dc2.domain.local'],
-    'base_dn'            => 'dc=domain,dc=local',
+    'account_suffix'     => '@corp.local',
+    'domain_controllers' => ['dc1.corp.local'],
+    'base_dn'            => 'dc=corp,dc=local',
     'admin_username'     => 'administrator',
     'admin_password'     => 'SecretPassword',
-    'ad_port'            => 389, // or 636 if use_ssl is true
+    'ad_port'            => 389,
     'use_ssl'            => false,
     'use_tls'            => false,
-    'recursive_groups'   => true,
 ];
 
-// Initialize and auto-connect
 $ad = new Adldap($config);
 ```
 
-### 2. User Authentication
+---
 
-Authenticate credentials against Active Directory:
+## Usage in Laravel
 
+### Using the Facade
 ```php
-if ($ad->authenticate('jdoe', 'UserPassword')) {
-    echo "Authentication successful!";
-} else {
-    echo "Invalid username or password.";
-}
-```
+namespace App\Http\Controllers;
 
-### 3. Finding and Querying Users
+use Illuminate\Http\Request;
+use Adldap\Laravel\Facades\Adldap;
 
-```php
-// Find user by username, email, or display name (ANR search)
-$user = $ad->user()->find('jdoe');
-
-// Query with specific attributes
-$user = $ad->user()->find('jdoe', ['cn', 'mail', 'telephonenumber', 'department']);
-
-// Get all users
-$allUsers = $ad->user()->all();
-```
-
-### 4. Search and Query Builder
-
-```php
-$results = $ad->search()
-    ->select(['cn', 'mail', 'samaccountname'])
-    ->where('department', '=', 'Engineering')
-    ->get();
-```
-
-### 5. Using inside Laravel 9 / 10 / 11
-
-In your `app/Providers/AppServiceProvider.php`:
-
-```php
-namespace App\Providers;
-
-use Illuminate\Support\ServiceProvider;
-use Adldap\Adldap;
-
-class AppServiceProvider extends ServiceProvider
+class AuthController extends Controller
 {
-    public function register(): void
+    public function login(Request $request)
     {
-        $this->app->singleton(Adldap::class, function ($app) {
-            return new Adldap(config('adldap'));
-        });
+        $credentials = $request->validate([
+            'username' => 'required',
+            'password' => 'required',
+        ]);
+
+        if (Adldap::authenticate($credentials['username'], $credentials['password'])) {
+            // Retrieve user details from Active Directory
+            $adUser = Adldap::user()->find($credentials['username']);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Authenticated successfully',
+                'user'    => [
+                    'name'  => $adUser['displayname'] ?? null,
+                    'email' => $adUser['mail'] ?? null,
+                ]
+            ]);
+        }
+
+        return response()->json(['error' => 'Invalid credentials'], 401);
     }
 }
 ```
 
-Create a `config/adldap.php` config file:
-
+### Using Dependency Injection
 ```php
-return [
-    'account_suffix'     => env('ADLDAP_ACCOUNT_SUFFIX', '@domain.local'),
-    'domain_controllers' => explode(',', env('ADLDAP_CONTROLLERS', 'dc1.domain.local')),
-    'base_dn'            => env('ADLDAP_BASE_DN', 'dc=domain,dc=local'),
-    'admin_username'     => env('ADLDAP_ADMIN_USER', 'administrator'),
-    'admin_password'     => env('ADLDAP_ADMIN_PASS', 'SecretPassword'),
-    'ad_port'            => (int) env('ADLDAP_PORT', 389),
-    'use_ssl'            => env('ADLDAP_USE_SSL', false),
-    'use_tls'            => env('ADLDAP_USE_TLS', false),
-    'recursive_groups'   => true,
-];
-```
+use Adldap\Adldap;
 
-Then resolve anywhere in your controllers or services:
+public function search(Request $request, Adldap $ad)
+{
+    $users = $ad->search()
+        ->select(['cn', 'mail', 'department'])
+        ->where('department', '=', 'Engineering')
+        ->get();
 
-```php
-$ad = app(Adldap::class);
-
-if ($ad->authenticate($request->username, $request->password)) {
-    // Authenticated
+    return response()->json($users);
 }
 ```
 
@@ -194,34 +154,17 @@ if ($ad->authenticate($request->username, $request->password)) {
 
 ## Running Tests
 
-This package includes a Pest / PHPUnit test suite:
+Run the test suite via Pest:
 
 ```bash
-# Run with Pest
 ./vendor/bin/pest
-
-# Or run with PHPUnit
-./vendor/bin/phpunit
 ```
 
-To quickly verify PHP 8.2 compatibility without vendor binaries:
+Or run standalone CLI diagnostics without Composer binaries:
 
 ```bash
 php test_cli.php
 ```
-
----
-
-## Documentation
-
-Full documentation and usage guides:
-- [Search Functions](docs/SEARCH-FUNCTIONS.md)
-- [User Functions](docs/USER-FUNCTIONS.md)
-- [Group Functions](docs/GROUP-FUNCTIONS.md)
-- [Folder Functions](docs/FOLDER-FUNCTIONS.md)
-- [Exchange Functions](docs/EXCHANGE-FUNCTIONS.md)
-- [Computer Functions](docs/COMPUTER-FUNCTIONS.md)
-- [Contact Functions](docs/CONTACT-FUNCTIONS.md)
 
 ---
 
